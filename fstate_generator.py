@@ -1,11 +1,10 @@
 import base64
 import datetime as dt
 import json
-import random
-import re
-from pathlib import Path
 import os
+import re
 import sys
+
 
 def _generate_fstate_base64(fstate):
     fstate_json = json.dumps(fstate, ensure_ascii=False)
@@ -60,7 +59,7 @@ def get_last_report(sess, t):
         try:
             if 'ShiFSH' in h:
                 print('-ShiFSH-')
-                ShiFSH = _html_to_json(htmls[i - 1])['SelectedValue']
+                ShiFSH = _html_to_json(htmls[i - 1])['Text']
                 print(ShiFSH)
             if 'ShiFZX' in h:
                 print('-ShiFZX-')
