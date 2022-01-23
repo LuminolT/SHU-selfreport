@@ -1,5 +1,9 @@
 # 上海大学健康之路每日一报/每日两报自动打卡
 
+**使用selenium提交表单（测试中），自动生成行程码（目前发现行程码只需要图片中有日期文字，且图片长宽比与手机差不多就行）**
+
+**适配2022-01-15版，增加随申码。请真实提交随申码与行程码。不信谣不传谣！**
+
 **适配2021-11-05版，DangSZS**
 
 **适配2021-11-04版，修复了ShiFSH字段 [issue 51](https://github.com/BlueFisher/SHU-selfreport/issues/51)，去除随申码，丰富日志记录，若出现错误，可以当天真实提交一次，等第二天再观察**
@@ -34,13 +38,6 @@
 
 在 `config.yaml` 中设置所有需要打卡的学号密码
 
-**本程序自带一键补报功能**，如需补报，定位到 `main.py` 第14行
-
-```python
-NEED_BEFORE = False  # 如需补报则置为True，否则False
-START_DT = dt.datetime(2020, 11, 10)  # 需要补报的起始日期
-```
-
 针对Ubuntu，编辑定时执行程序cron
 
 ```bash
@@ -68,8 +65,6 @@ crontab -e
 ```
 
 ### 2. 你没有服务器，使用 github actions（推荐）
-
-**在该模式下请不要开启补报功能**
 
 #### 你第一次Fork
 
@@ -114,6 +109,8 @@ crontab -e
   - pyyaml
   - beautifulsoup4
   - requests
+  - selenium
+  - pillow
 
 ## 感谢
 
