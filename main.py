@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime as dt
 import json
 import os
@@ -18,7 +19,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from login import login
 
-
+NEED_BEFORE = False  # 如需补报则置为True，否则False
+START_DT = dt.datetime(2022, 1, 14)  # 需要补报的起始日期
 RETRY = 5
 RETRY_TIMEOUT = 120
 
@@ -72,10 +74,12 @@ def get_last_report(browser: webdriver.Chrome, t):
 
     # 手机号
     ShouJHM = browser.find_element(By.ID, 'persinfo_ctl00_ShouJHM-inputEl').get_attribute('value')
-
-    print('正在获取前一天的填报信息...')
-
-    t = t - dt.timedelta(days=1)
+    if NEED_BEFORE:
+        print('开始补报，正在获取补报日期前一天的填报信息...')
+        t = START_DT - dt.timedelta(days=1)
+    else:
+        print('正在获取前一天的填报信息...')
+        t = t - dt.timedelta(days=1)
     browser.get(f'https://selfreport.shu.edu.cn/ViewDayReport.aspx?day={t.year}-{t.month}-{t.day}')
     time.sleep(1)
 
@@ -113,15 +117,17 @@ def draw_XingCM(ShouJHM: str, t):
 def report_day(browser: webdriver.Chrome,
                ShouJHM, ShiFSH, ShiFZX, ddlSheng, ddlShi, ddlXian, XiangXDZ, ShiFZJ,
                t: dt.datetime):
+    print(f'正在补报{t.year}-{t.month}-{t.day}')
     browser.get(f'https://selfreport.shu.edu.cn/DayReport.aspx?day={t.year}-{t.month}-{t.day}')
     time.sleep(1)
 
     print('承诺')
     browser.find_element(By.ID, 'p1_ChengNuo-inputEl-icon').click()
 
-    print('答题')
     checkboxes = browser.find_elements(By.CSS_SELECTOR, '#p1_pnlDangSZS .f-field-checkbox-icon')
-    checkboxes[0].click()
+    if len(checkboxes) > 0:  # 有的人没有答题
+        print('答题')
+        checkboxes[0].click()
 
     print('是否在上海', ShiFSH)
     # 在上海（校内），在上海（不在校内），不在上海
@@ -293,6 +299,8 @@ if __name__ == "__main__":
 
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument("window-size=428,843")
+        chrome_options.add_argument("--no-sandbox")
 
         s = Service()
         browser = webdriver.Chrome(options=chrome_options, service=s)
@@ -305,6 +313,7 @@ if __name__ == "__main__":
         else:
             print('登录失败')
             failed_users.append(user_abbr)
+            continue
 
         sess = requests.Session()
         for cookie in browser.get_cookies():
@@ -319,7 +328,17 @@ if __name__ == "__main__":
 
             try:
                 infos = get_last_report(browser, now)
-
+                if NEED_BEFORE:
+                    t = START_DT
+                    while t < now:
+                        report_result = report_day(browser,
+                                                   *infos,
+                                                   t)
+                        if report_result:
+                            print(f'{now} 每日一报补报成功')
+                        else:
+                            print(f'{now} 每日一报补报失败')
+                        t = t + dt.timedelta(days=1)
                 report_result = report_day(browser,
                                            *infos,
                                            now)
