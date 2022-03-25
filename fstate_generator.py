@@ -21,9 +21,9 @@ def generate_fstate_day(BaoSRQ, ShiFSH, ShiFZX, XiaoQu,
         fstate = json.loads(f.read())
 
     fstate['p1_BaoSRQ']['Text'] = BaoSRQ
-    fstate['p1_ShiFSH']['SelectedValue'] = ShiFSH
-    fstate['p1_ShiFZX']['SelectedValue'] = ShiFZX
-    fstate['p1_XiaoQu']['SelectedValue'] = XiaoQu
+    fstate['p1_P_GuoNei_ShiFSH']['SelectedValue'] = ShiFSH
+    fstate['p1_P_GuoNei_ShiFZX']['SelectedValue'] = ShiFZX
+    fstate['p1_P_GuoNei_XiaoQu']['SelectedValue'] = XiaoQu
     fstate['p1_ddlSheng']['F_Items'] = [[ddlSheng, ddlSheng, 1, '', '']]
     fstate['p1_ddlSheng']['SelectedValueArray'] = [ddlSheng]
     fstate['p1_ddlShi']['F_Items'] = [[ddlShi, ddlShi, 1, '', '']]
@@ -32,8 +32,8 @@ def generate_fstate_day(BaoSRQ, ShiFSH, ShiFZX, XiaoQu,
     fstate['p1_ddlXian']['SelectedValueArray'] = [ddlXian]
     fstate['p1_XiangXDZ']['Text'] = XiangXDZ
     fstate['p1_ShiFZJ']['SelectedValue'] = ShiFZJ
-    fstate['p1_pImages_HFimgSuiSM']['Text'] = SuiSM
-    fstate['p1_pImages_HFimgXingCM']['Text'] = XingCM
+    fstate['p1_P_GuoNei_pImages_HFimgSuiSM']['Text'] = SuiSM
+    fstate['p1_P_GuoNei_pImages_HFimgXingCM']['Text'] = XingCM
 
     fstate_base64 = _generate_fstate_base64(fstate)
     t = len(fstate_base64) // 2
@@ -91,7 +91,7 @@ def get_last_report(sess, t):
                 print(ShiFZX)
             if 'XiaoQu' in h:
                 print('-XiaoQu-')
-                XiaoQu = _html_to_json(htmls[i - 1])['SelectedValue']
+                XiaoQu = _html_to_json(htmls[i - 1])['Text']
                 print(XiaoQu)
             if 'ddlSheng' in h:
                 print('-ddlSheng-')
@@ -136,7 +136,7 @@ def _draw_XingCM(ShouJHM: str, t):
 def upload_img(sess, view_state, is_SuiSM, ShouJHM, t):
     img_path = _draw_XingCM(ShouJHM, t)
 
-    target = 'p1$pImages$fileSuiSM' if is_SuiSM else 'p1$pImages$fileXingCM'
+    target = 'p1$P_GuoNei$pImages$fileSuiSM' if is_SuiSM else 'p1$P_GuoNei$pImages$fileXingCM'
     with open(img_path, 'rb') as f:
         r = sess.post('https://selfreport.shu.edu.cn/DayReport.aspx', data={
             '__EVENTTARGET': target,
@@ -170,7 +170,7 @@ def get_img_value(sess, ShouJHM, t):
     ret = re.findall(r'^.*//\]', r.text, re.MULTILINE)[0]
     htmls = ret.split(';var ')
     for i, h in enumerate(htmls):
-        if 'p1_pImages_HFimgSuiSM' in h:
+        if 'p1_P_GuoNei_pImages_fileSuiSM' in h:
             try:
                 SuiSM = _html_to_json(htmls[i - 1])['Text']
             except:
@@ -181,7 +181,7 @@ def get_img_value(sess, ShouJHM, t):
                 else:
                     SuiSM = code
 
-        if 'p1$pImages$HFimgXingCM' in h:
+        if 'p1_P_GuoNei_pImages_fileXingCM' in h:
             try:
                 XingCM = _html_to_json(htmls[i - 1])['Text']
             except:
