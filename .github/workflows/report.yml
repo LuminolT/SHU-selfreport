@@ -22,9 +22,43 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Pull Remote
+        env:
+          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+        if: env.DISABLE_PULL_REMOTE == ''
+        run: |
+          wget -O remote.zip https://github.com/BlueFisher/SHU-selfreport/archive/refs/heads/master.zip
+          unzip remote.zip
+
+      - name: Report Without OpenVPN
+        if: always()
+        env:
+          USERS: ${{ secrets.USERS }}
+          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+        run: |
+          if [[ $DISABLE_PULL_REMOTE == '' ]]; then
+            echo "Report from remote";
+            if python -u SHU-selfreport-master/main.py; then
+              echo "Report from remote success";
+            else
+              echo "Report from remote failed, try using OpenVPN";
+              echo "USE_OVPN=1" >> $GITHUB_ENV;
+            fi
+          else
+            echo "Report from local";
+            if python -u main.py; then
+              echo "Report from local success";
+            else
+              echo "Report from local failed, try using OpenVPN";
+              echo "USE_OVPN=1" >> $GITHUB_ENV;
+            fi
+          fi
+
       - name: Configure OpenVPN
         env:
-          users: ${{ secrets.USERS }}
+          USERS: ${{ secrets.USERS }}
+        if: env.USE_OVPN != ''
         run: |
           sudo apt update
           sudo apt-get --assume-yes --no-install-recommends install openvpn
@@ -32,29 +66,37 @@ jobs:
           touch vpn.log
 
       - name: Connect and Test OpenVPN Connection
-        if: always()
-        run: if [[ $disable_openvpn != true ]] ; then sudo ./ovpn.sh ; fi
-        env:
-          disable_openvpn: ${{ secrets.DISABLE_OPENVPN }}
+        if: env.USE_OVPN != ''
+        run: sudo ./ovpn.sh
 
-      - name: Report
-        if: always()
+      - name: Report With OpenVPN
+        if: env.USE_OVPN != ''
         env:
-          users: ${{ secrets.USERS }}
-          https_proxy: ${{ secrets.HTTPS_PROXY }}
-        run: "python -u main.py"
+          USERS: ${{ secrets.USERS }}
+          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+        run: |
+          if [[ $DISABLE_PULL_REMOTE == '' ]]; then
+            echo "Report from remote";
+            python -u SHU-selfreport-master/main.py;
+          else
+            echo "Report from local";
+            python -u main.py;
+          fi
 
       - name: Kill OpenVPN Connection
-        if: always()
+        env:
+          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+        if: env.USE_OVPN != ''
         run: |
           sudo chmod 777 vpn.log
-          if [[ $disable_openvpn != true ]] ; then sudo killall openvpn ; fi
-        env:
-          disable_openvpn: ${{ secrets.DISABLE_OPENVPN }}
+          sudo killall openvpn
 
       - name: Upload VPN logs
         uses: actions/upload-artifact@v2
-        if: always()
+        env:
+          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+        if: env.USE_OVPN != ''
         with:
           name: VPN logs
           path: vpn.log
