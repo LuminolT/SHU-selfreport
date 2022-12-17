@@ -1,104 +1,104 @@
-name: Auto Report
+# name: Auto Report
 
-on:
-  schedule:
-    - cron: "0 19 * * *"
-  workflow_dispatch:
+# on:
+#   schedule:
+#     - cron: "0 19 * * *"
+#   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
+#     steps:
+#       - uses: actions/checkout@v2
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+#       - name: Set up Python 3.8
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: 3.8
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
 
-      - name: Pull Remote
-        env:
-          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
-        if: env.DISABLE_PULL_REMOTE == ''
-        run: |
-          wget -O remote.zip https://github.com/BlueFisher/SHU-selfreport/archive/refs/heads/master.zip
-          unzip remote.zip
+#       - name: Pull Remote
+#         env:
+#           DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+#         if: env.DISABLE_PULL_REMOTE == ''
+#         run: |
+#           wget -O remote.zip https://github.com/BlueFisher/SHU-selfreport/archive/refs/heads/master.zip
+#           unzip remote.zip
 
-      - name: Report Without OpenVPN
-        if: always()
-        env:
-          USERS: ${{ secrets.USERS }}
-          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
-          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
-          IMG: ${{ secrets.IMG }}
-        run: |
-          if [[ $DISABLE_PULL_REMOTE == '' ]]; then
-            echo "Report from remote";
-            if python -u SHU-selfreport-master/main.py; then
-              echo "Report from remote success";
-            else
-              echo "Report from remote failed, try using OpenVPN";
-              echo "USE_OVPN=1" >> $GITHUB_ENV;
-            fi
-          else
-            echo "Report from local";
-            if python -u main.py; then
-              echo "Report from local success";
-            else
-              echo "Report from local failed, try using OpenVPN";
-              echo "USE_OVPN=1" >> $GITHUB_ENV;
-            fi
-          fi
+#       - name: Report Without OpenVPN
+#         if: always()
+#         env:
+#           USERS: ${{ secrets.USERS }}
+#           HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+#           DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+#           IMG: ${{ secrets.IMG }}
+#         run: |
+#           if [[ $DISABLE_PULL_REMOTE == '' ]]; then
+#             echo "Report from remote";
+#             if python -u SHU-selfreport-master/main.py; then
+#               echo "Report from remote success";
+#             else
+#               echo "Report from remote failed, try using OpenVPN";
+#               echo "USE_OVPN=1" >> $GITHUB_ENV;
+#             fi
+#           else
+#             echo "Report from local";
+#             if python -u main.py; then
+#               echo "Report from local success";
+#             else
+#               echo "Report from local failed, try using OpenVPN";
+#               echo "USE_OVPN=1" >> $GITHUB_ENV;
+#             fi
+#           fi
 
-      - name: Configure OpenVPN
-        env:
-          USERS: ${{ secrets.USERS }}
-        if: env.USE_OVPN != ''
-        run: |
-          sudo apt update
-          sudo apt-get --assume-yes --no-install-recommends install openvpn
-          python3 ovpn.py
-          touch vpn.log
+#       - name: Configure OpenVPN
+#         env:
+#           USERS: ${{ secrets.USERS }}
+#         if: env.USE_OVPN != ''
+#         run: |
+#           sudo apt update
+#           sudo apt-get --assume-yes --no-install-recommends install openvpn
+#           python3 ovpn.py
+#           touch vpn.log
 
-      - name: Connect and Test OpenVPN Connection
-        if: env.USE_OVPN != ''
-        run: sudo ./ovpn.sh
+#       - name: Connect and Test OpenVPN Connection
+#         if: env.USE_OVPN != ''
+#         run: sudo ./ovpn.sh
 
-      - name: Report With OpenVPN
-        if: env.USE_OVPN != ''
-        env:
-          USERS: ${{ secrets.USERS }}
-          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
-          DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
-          IMG: ${{ secrets.IMG }}
-        run: |
-          if [[ $DISABLE_PULL_REMOTE == '' ]]; then
-            echo "Report from remote";
-            python -u SHU-selfreport-master/main.py;
-          else
-            echo "Report from local";
-            python -u main.py;
-          fi
+#       - name: Report With OpenVPN
+#         if: env.USE_OVPN != ''
+#         env:
+#           USERS: ${{ secrets.USERS }}
+#           HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+#           DISABLE_PULL_REMOTE: ${{ secrets.DISABLE_PULL_REMOTE }}
+#           IMG: ${{ secrets.IMG }}
+#         run: |
+#           if [[ $DISABLE_PULL_REMOTE == '' ]]; then
+#             echo "Report from remote";
+#             python -u SHU-selfreport-master/main.py;
+#           else
+#             echo "Report from local";
+#             python -u main.py;
+#           fi
 
-      - name: Kill OpenVPN Connection
-        env:
-          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
-        if: env.USE_OVPN != ''
-        run: |
-          sudo chmod 777 vpn.log
-          sudo killall openvpn
+#       - name: Kill OpenVPN Connection
+#         env:
+#           HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+#         if: env.USE_OVPN != ''
+#         run: |
+#           sudo chmod 777 vpn.log
+#           sudo killall openvpn
 
-      - name: Upload VPN logs
-        uses: actions/upload-artifact@v2
-        env:
-          HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
-        if: env.USE_OVPN != ''
-        with:
-          name: VPN logs
-          path: vpn.log
+#       - name: Upload VPN logs
+#         uses: actions/upload-artifact@v2
+#         env:
+#           HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+#         if: env.USE_OVPN != ''
+#         with:
+#           name: VPN logs
+#           path: vpn.log
